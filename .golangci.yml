@@ -1,0 +1,45 @@
+linters:
+  enable:
+    - revive
+    - gocritic
+    - misspell
+    - prealloc
+    - unparam
+    - bodyclose
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+
+linters-settings:
+  # config taken from here https://github.com/mgechev/revive#recommended-configuration
+  # removed var-naming rule
+  revive:
+    ignore-generated-header: false
+    severity: "warning"
+    confidence: 0.8
+    rules: 
+    - name:  blank-imports 
+    - name:  context-as-argument 
+    - name:  context-keys-type 
+    - name:  dot-imports 
+    - name:  error-return 
+    - name:  error-strings 
+    - name:  error-naming 
+    - name:  exported 
+    - name:  increment-decrement 
+    - name:  var-declaration
+    - name:  package-comments 
+    - name:  range 
+    - name:  receiver-naming 
+    - name:  time-naming 
+    - name:  unexported-return 
+    - name:  indent-error-flow 
+    - name:  errorf 
+    - name:  empty-block 
+    - name:  superfluous-else 
+    - name:  unused-parameter 
+    - name:  unreachable-code 
+    - name:  redefines-builtin-id
