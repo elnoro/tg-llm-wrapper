@@ -7,13 +7,15 @@ import (
 	"github.com/elnoro/tg-llm-wrapper/pkg/telegram"
 	"log/slog"
 	"strings"
+	"time"
 )
 
 const (
-	maxMsgLen = 1024
-	startCmd  = "/start"
-	systemCmd = "/system"
-	resetCmd  = "/reset"
+	maxMsgLen    = 1024
+	typingAction = 4 * time.Second
+	startCmd     = "/start"
+	systemCmd    = "/system"
+	resetCmd     = "/reset"
 )
 
 type Loop struct {
@@ -134,17 +136,40 @@ func (l *Loop) handleConversation(ctx context.Context, update telegram.Update) e
 		return fmt.Errorf("failed to send chat action: %w", err)
 	}
 
-	response, err := l.model.Respond(ctx, update.Message.Text)
-	if err != nil {
-		return fmt.Errorf("failed to respond to message: %w", err)
-	}
+	respCh := make(chan string)
+	errCh := make(chan error)
 
-	err = l.botClient.SendMessage(ctx, update.Message.Chat.Id, response)
-	if err != nil {
-		return fmt.Errorf("failed to send message: %w", err)
-	}
+	go func() {
+		defer close(respCh)
+		defer close(errCh)
 
-	return nil
+		resp, err := l.model.Respond(ctx, update.Message.Text)
+		if err != nil {
+			errCh <- fmt.Errorf("failed to respond to message: %w", err)
+			return
+		}
+
+		respCh <- resp
+	}()
+
+	for {
+		select {
+		case <-time.After(typingAction):
+			err := l.botClient.SendChatAction(ctx, update.Message.Chat.Id, "typing")
+			if err != nil {
+				return fmt.Errorf("failed to send chat action: %w", err)
+			}
+		case response := <-respCh:
+			err := l.botClient.SendMessage(ctx, update.Message.Chat.Id, response)
+			if err != nil {
+				return fmt.Errorf("failed to send message: %w", err)
+			}
+		case err := <-errCh:
+			return err
+		case <-ctx.Done():
+			return nil
+		}
+	}
 }
 
 func (l *Loop) validateUpdate(update telegram.Update) error {
