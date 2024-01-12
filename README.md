@@ -28,10 +28,15 @@ OpenAI:
 make run/openai
 ```
 
-To deploy as a Docker container:
+Push Docker image (via Ko)
 
 ```bash
 make deploy
+```
+
+Run in Podman
+```bash
+make podman/start
 ```
 
 ## Configuration

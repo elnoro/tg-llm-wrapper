@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: tg-llm-wrapper-pod
+spec:
+  containers:
+    - name: bot
+      image: tg-llm-wrapper
+      env:
+        - name: TELEGRAM_TOKEN
+          value: "${TELEGRAM_TOKEN}"
+        - name: TELEGRAM_USER_ID
+          value: "${TELEGRAM_USER_ID}"
+        - name: OPENAI_API_KEY
+          value: "${OPENAI_API_KEY}"

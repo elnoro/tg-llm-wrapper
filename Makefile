@@ -22,4 +22,16 @@ lint/deps:
 	go mod tidy
 	go mod verify
 
+.PHONY: lint
 lint: lint/deps lint/golangci
+
+.PHONY: podman
+podman/start:
+	@podman build -t tg-llm-wrapper .
+	@envsubst < pod.yaml | podman kube play --replace -
+	@podman pod logs -f -c tg-llm-wrapper-pod-bot tg-llm-wrapper-pod
+
+.PHONY: podman
+podman/destroy:
+	@podman pod stop tg-llm-wrapper-pod
+	@podman pod rm tg-llm-wrapper-pod
