@@ -1,0 +1,7 @@
+.env.dist
+.env
+.idea
+fly.toml
+Makefile
+README.md
+pod.yaml

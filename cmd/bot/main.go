@@ -37,10 +37,20 @@ type Config struct {
 		Url   string
 	}
 	OpenAI struct {
+		URL    string
 		ApiKey string
 		Model  string
 		Debug  bool
 	}
+}
+
+func getEnv(name, val string) string {
+	env, ok := os.LookupEnv(name)
+	if !ok {
+		return val
+	}
+
+	return env
 }
 
 func main() {
@@ -69,8 +79,9 @@ func main() {
 	flag.StringVar(&cfg.OLLama.Model, "ollama-model", "openhermes", "OLLama model to use. Choose here https://ollama.ai/library")
 	flag.StringVar(&cfg.OLLama.Url, "ollama-url", "http://localhost:11434", "OLLama url")
 
-	flag.StringVar(&cfg.OpenAI.ApiKey, "openai-api-key", os.Getenv("OPENAI_API_KEY"), "OpenAI API key")
-	flag.StringVar(&cfg.OpenAI.Model, "openai-model", "gpt-4-1106-preview", "OpenAI model to use")
+	flag.StringVar(&cfg.OpenAI.URL, "openai-url", os.Getenv("OPENAI_URL"), "URL for OpenAI compatible api")
+	flag.StringVar(&cfg.OpenAI.ApiKey, "openai-api-key", os.Getenv("OPENAI_API_KEY"), "API key for OpenAI compatible api")
+	flag.StringVar(&cfg.OpenAI.Model, "openai-model", getEnv("OPENAI_MODEL", "gpt-4-1106-preview"), "OpenAI model to use")
 	flag.BoolVar(&cfg.OpenAI.Debug, "openai-debug", false, "Debug mode for OpenAI")
 
 	flag.Parse()
@@ -144,6 +155,7 @@ func initLangChain(cfg Config) (llms.ChatLLM, error) {
 		return langChainChat, nil
 	case "openai":
 		langChainChat, err := openai.NewChat(
+			openai.WithBaseURL(cfg.OpenAI.URL),
 			openai.WithModel(cfg.OpenAI.Model),
 			openai.WithToken(cfg.OpenAI.ApiKey),
 			openai.WithHTTPClient(newOpenAiClient(cfg.OpenAI.Debug)),

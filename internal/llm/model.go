@@ -22,8 +22,8 @@ func NewChatModel(llm llms.ChatLLM, systemPrompt string) (*ChatModel, error) {
 }
 
 func (c *ChatModel) OnJoin(name string) {
-	c.chatHistory = append(c.chatHistory,
-		schema.SystemChatMessage{Content: fmt.Sprintf("Remember, human's name is %s", name)})
+	newSystemMessage := c.chatHistory[0].GetContent() + fmt.Sprintf("\nRemember, human's name is %s", name)
+	c.chatHistory[0] = schema.SystemChatMessage{Content: newSystemMessage}
 }
 
 func (c *ChatModel) Respond(ctx context.Context, userMessage string) (string, error) {
@@ -47,5 +47,5 @@ func (c *ChatModel) ChangeSystemPrompt(prompt string) {
 }
 
 func (c *ChatModel) Reset() {
-	c.chatHistory = c.chatHistory[:2]
+	c.chatHistory = c.chatHistory[:1]
 }

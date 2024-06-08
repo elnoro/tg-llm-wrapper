@@ -120,7 +120,7 @@ func (l *Loop) handleSystemCommand(ctx context.Context, update telegram.Update) 
 	systemPrompt := strings.TrimSpace(update.Message.Text[len(systemCmd):])
 
 	l.model.ChangeSystemPrompt(systemPrompt)
-	slog.Info("system prompt changed", slog.String("new_prompt", systemPrompt))
+	slog.Info("system prompt changed")
 
 	err := l.botClient.SendMessage(ctx, update.Message.Chat.Id, "System prompt changed")
 	if err != nil {
