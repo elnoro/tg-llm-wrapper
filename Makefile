@@ -11,11 +11,15 @@ run/openai:
 
 .PHONY: deploy
 deploy:
-	ko build --bare --platform=linux/amd64 ./cmd/bot
+	podman build -t tgllm-fly-deployer -f fly.Dockerfile .
+	podman run --rm -it \
+		-v $(shell pwd):/app \
+		-e FLY_API_TOKEN=$(FLY_API_TOKEN) \
+		tgllm-fly-deployer
 
 .PHONY: lint/golangci
 lint/golangci:
-	docker run --rm -v `pwd`:/app -w /app golangci/golangci-lint:v1.55.2 golangci-lint run -v --timeout=5m
+	podman run --rm -v `pwd`:/app -w /app golangci/golangci-lint:v1.55.2 golangci-lint run -v --timeout=5m
 
 .PHONY: lint/deps
 lint/deps:

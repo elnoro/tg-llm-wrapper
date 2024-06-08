@@ -3,11 +3,12 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/elnoro/tg-llm-wrapper/internal/llm"
-	"github.com/elnoro/tg-llm-wrapper/pkg/telegram"
 	"log/slog"
 	"strings"
 	"time"
+
+	"github.com/elnoro/tg-llm-wrapper/internal/llm"
+	"github.com/elnoro/tg-llm-wrapper/pkg/telegram"
 )
 
 const (
@@ -51,7 +52,6 @@ func (l *Loop) handleUpdate(ctx context.Context, update telegram.Update) {
 	}
 
 	ll := slog.With(
-		slog.String("message", update.Message.Text),
 		slog.String("username", update.Message.From.Username),
 		slog.Int64("user_id", update.Message.From.Id),
 	)

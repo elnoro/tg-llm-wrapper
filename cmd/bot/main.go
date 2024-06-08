@@ -5,13 +5,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/elnoro/tg-llm-wrapper/internal/app"
-	"github.com/elnoro/tg-llm-wrapper/internal/llm"
-	custom_http "github.com/elnoro/tg-llm-wrapper/pkg/http"
-	"github.com/elnoro/tg-llm-wrapper/pkg/telegram"
-	"github.com/tmc/langchaingo/llms"
-	"github.com/tmc/langchaingo/llms/ollama"
-	"github.com/tmc/langchaingo/llms/openai"
 	"log"
 	"log/slog"
 	"net/http"
@@ -20,6 +13,14 @@ import (
 	"strconv"
 	"sync"
 	"syscall"
+
+	"github.com/elnoro/tg-llm-wrapper/internal/app"
+	"github.com/elnoro/tg-llm-wrapper/internal/llm"
+	custom_http "github.com/elnoro/tg-llm-wrapper/pkg/http"
+	"github.com/elnoro/tg-llm-wrapper/pkg/telegram"
+	"github.com/tmc/langchaingo/llms"
+	"github.com/tmc/langchaingo/llms/ollama"
+	"github.com/tmc/langchaingo/llms/openai"
 )
 
 type Config struct {
