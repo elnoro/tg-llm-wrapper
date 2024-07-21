@@ -15,6 +15,7 @@ import (
 	"syscall"
 
 	"github.com/elnoro/tg-llm-wrapper/internal/app"
+	"github.com/elnoro/tg-llm-wrapper/internal/history"
 	"github.com/elnoro/tg-llm-wrapper/internal/llm"
 	custom_http "github.com/elnoro/tg-llm-wrapper/pkg/http"
 	"github.com/elnoro/tg-llm-wrapper/pkg/telegram"
@@ -32,6 +33,7 @@ type Config struct {
 
 	LLMEngine    string // ollama or openai
 	SystemPrompt string
+	Postgres     string
 
 	OLLama struct {
 		Model string
@@ -76,8 +78,9 @@ func main() {
 
 	flag.StringVar(&cfg.LLMEngine, "llm-engine", "openai", "LLM engine to use")
 	flag.StringVar(&cfg.SystemPrompt, "system-prompt", os.Getenv("SYSTEM_PROMPT"), "custom initial prompt")
+	flag.StringVar(&cfg.Postgres, "pg-conn", os.Getenv("PG_CONN"), "pg connection string")
 
-	flag.StringVar(&cfg.OLLama.Model, "ollama-model", "openhermes", "OLLama model to use. Choose here https://ollama.ai/library")
+	flag.StringVar(&cfg.OLLama.Model, "ollama-model", "llama3", "Pick a model here https://ollama.ai/library")
 	flag.StringVar(&cfg.OLLama.Url, "ollama-url", "http://localhost:11434", "OLLama url")
 
 	flag.StringVar(&cfg.OpenAI.URL, "openai-url", os.Getenv("OPENAI_URL"), "URL for OpenAI compatible api")
@@ -87,7 +90,10 @@ func main() {
 
 	flag.Parse()
 
-	loop := initLoop(cfg)
+	loop, err := initLoop(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -113,12 +119,7 @@ func main() {
 	wg.Wait()
 }
 
-func initLoop(cfg Config) *app.Loop {
-	langChainChat, err := initLangChain(cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
-
+func initLoop(cfg Config) (*app.Loop, error) {
 	if cfg.SystemPrompt == "" {
 		cfg.SystemPrompt = "You are an AI assistant with a flair for friendliness and just a sprinkle of sass. " +
 			"You are helpful and kind.\n" +
@@ -126,20 +127,41 @@ func initLoop(cfg Config) *app.Loop {
 			" maintaining a balance between warmth, professionalism, and efficiency.\n"
 	}
 
+	langChainChat, err := initLangChain(cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	chatModel, err := llm.NewChatModel(langChainChat, cfg.SystemPrompt)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	bot := telegram.NewTelegramBotFromToken(cfg.Telegram.BotToken, cfg.Telegram.Debug)
 	me, err := bot.GetMe(context.Background())
-
 	if err != nil {
 		slog.Error("telegram bot authorization failed", slog.String("error", err.Error()))
+		return nil, err
 	}
+
 	slog.Info("telegram bot authorized", slog.String("account", me.Result.Username))
 
-	return app.NewLoop(chatModel, bot, cfg.Telegram.AdminId)
+	msgStore, err := initStorage(context.Background(), cfg)
+	if err != nil {
+		slog.Error("storage initialization failed", slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	return app.NewLoop(chatModel, bot, cfg.Telegram.AdminId, msgStore), nil
+}
+
+func initStorage(ctx context.Context, cfg Config) (app.MessageStorage, error) {
+	if cfg.Postgres == "" {
+		return &history.InMemory{}, nil
+	}
+
+	slog.Info("connecting to message store")
+	return history.NewPostgresMessageStorage(ctx, cfg.Postgres)
 }
 
 func initLangChain(cfg Config) (llms.ChatLLM, error) {

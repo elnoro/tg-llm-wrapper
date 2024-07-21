@@ -21,14 +21,24 @@ const (
 
 type Loop struct {
 	model     *llm.ChatModel
+	storage   MessageStorage
 	botClient *telegram.Client
 	adminId   int64
 
 	conversationStarted bool
 }
 
-func NewLoop(model *llm.ChatModel, botClient *telegram.Client, adminId int64) *Loop {
-	return &Loop{model: model, botClient: botClient, adminId: adminId}
+type MessageStorage interface {
+	Record(ctx context.Context, userID int64, userMessage, modelMessage string) error
+}
+
+func NewLoop(model *llm.ChatModel, botClient *telegram.Client, adminId int64, store MessageStorage) *Loop {
+	return &Loop{
+		model:     model,
+		botClient: botClient,
+		adminId:   adminId,
+		storage:   store,
+	}
 }
 
 func (l *Loop) Run(ctx context.Context) error {
@@ -38,8 +48,7 @@ func (l *Loop) Run(ctx context.Context) error {
 	}
 
 	for update := range updates {
-		// independent context to provide graceful shutdown
-		l.handleUpdate(context.Background(), update)
+		l.handleUpdate(ctx, update)
 	}
 
 	return nil
@@ -133,16 +142,15 @@ func (l *Loop) handleSystemCommand(ctx context.Context, update telegram.Update) 
 func (l *Loop) handleConversation(ctx context.Context, update telegram.Update) error {
 	err := l.botClient.SendChatAction(ctx, update.Message.Chat.Id, "typing")
 	if err != nil {
-		return fmt.Errorf("failed to send chat action: %w", err)
+		return fmt.Errorf("failed to initiate typing: %w", err)
 	}
 
 	respCh := make(chan string)
+	defer close(respCh)
 	errCh := make(chan error)
+	defer close(errCh)
 
 	go func() {
-		defer close(respCh)
-		defer close(errCh)
-
 		resp, err := l.model.Respond(ctx, update.Message.Text)
 		if err != nil {
 			errCh <- fmt.Errorf("failed to respond to message: %w", err)
@@ -164,6 +172,13 @@ func (l *Loop) handleConversation(ctx context.Context, update telegram.Update) e
 			if err != nil {
 				return fmt.Errorf("failed to send message: %w", err)
 			}
+			l.storage.Record(ctx,
+				update.Message.Chat.Id,
+				update.Message.Text,
+				response,
+			)
+
+			return nil
 		case err := <-errCh:
 			return err
 		case <-ctx.Done():

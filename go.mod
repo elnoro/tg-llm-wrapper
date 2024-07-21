@@ -2,7 +2,10 @@ module github.com/elnoro/tg-llm-wrapper
 
 go 1.21.3
 
-require github.com/tmc/langchaingo v0.1.3
+require (
+	github.com/lib/pq v1.10.9
+	github.com/tmc/langchaingo v0.1.3
+)
 
 require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
