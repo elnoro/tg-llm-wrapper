@@ -172,11 +172,14 @@ func (l *Loop) handleConversation(ctx context.Context, update telegram.Update) e
 			if err != nil {
 				return fmt.Errorf("failed to send message: %w", err)
 			}
-			l.storage.Record(ctx,
-				update.Message.Chat.Id,
-				update.Message.Text,
-				response,
-			)
+
+			go func() {
+				err := l.storage.Record(ctx, update.Message.Chat.Id, update.Message.Text, response)
+				if err != nil {
+					slog.Error("failed to record an interaction", slog.String("error", err.Error()))
+				}
+
+			}()
 
 			return nil
 		case err := <-errCh:

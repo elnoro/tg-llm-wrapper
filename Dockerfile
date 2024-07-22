@@ -16,4 +16,4 @@ FROM cgr.dev/chainguard/static
 COPY --from=builder /service /service
 WORKDIR /service
 
-ENTRYPOINT ["/service/bot", "--telegram-debug=true", "--openai-debug=true"]
+ENTRYPOINT ["/service/bot"]
