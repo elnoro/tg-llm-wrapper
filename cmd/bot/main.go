@@ -164,20 +164,20 @@ func initStorage(ctx context.Context, cfg Config) (app.MessageStorage, error) {
 	return history.NewPostgresMessageStorage(ctx, cfg.Postgres)
 }
 
-func initLangChain(cfg Config) (llms.ChatLLM, error) {
+func initLangChain(cfg Config) (llms.Model, error) {
 	switch cfg.LLMEngine {
 	case "ollama":
-		langChainChat, err := ollama.NewChat(
-			ollama.WithLLMOptions(
-				ollama.WithModel(cfg.OLLama.Model),
-				ollama.WithServerURL(cfg.OLLama.Url),
-			))
+		ollama.New()
+		langChainChat, err := ollama.New(
+			ollama.WithModel(cfg.OLLama.Model),
+			ollama.WithServerURL(cfg.OLLama.Url),
+		)
 		if err != nil {
 			return nil, fmt.Errorf("ollama chat init, %w", err)
 		}
 		return langChainChat, nil
 	case "openai":
-		langChainChat, err := openai.NewChat(
+		langChainChat, err := openai.New(
 			openai.WithBaseURL(cfg.OpenAI.URL),
 			openai.WithModel(cfg.OpenAI.Model),
 			openai.WithToken(cfg.OpenAI.ApiKey),
